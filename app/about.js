@@ -1,11 +1,22 @@
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Constants from "expo-constants";
 
 import AppBackground from "../src/AppBackground";
 
 export default function AboutScreen() {
   const appVersion = Constants.expoConfig?.version || "1.0.0";
+
+  function openPrivacyPolicy() {
+    Linking.openURL("https://gohan279.github.io/skupljanje-slicica-privacy/");
+  }
 
   return (
     <AppBackground>
@@ -83,6 +94,10 @@ export default function AboutScreen() {
             Aplikacija ne sprema e-mail adresu, broj telefona ni lokaciju
             korisnika.
           </Text>
+
+          <Pressable style={styles.privacyButton} onPress={openPrivacyPolicy}>
+            <Text style={styles.privacyButtonText}>Pravila privatnosti</Text>
+          </Pressable>
         </View>
 
         <View style={styles.card}>
@@ -169,5 +184,20 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: 12,
     marginTop: 4,
+  },
+
+  privacyButton: {
+    backgroundColor: "#2e7d4f",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    marginBottom: 14,
+  },
+
+  privacyButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "700",
   },
 });
