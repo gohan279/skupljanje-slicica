@@ -18,9 +18,16 @@ export default function RootLayout() {
         />
 
         <Stack.Screen
+          name="albums"
+          options={{
+            title: "Albumi",
+          }}
+        />
+
+        <Stack.Screen
           name="owned"
           options={{
-            title: "Moje Sličice",
+            title: "Moje sličice",
           }}
         />
 
@@ -34,14 +41,14 @@ export default function RootLayout() {
         <Stack.Screen
           name="share"
           options={{
-            title: "Podijeli Album",
+            title: "Podijeli album",
           }}
         />
 
         <Stack.Screen
           name="scan"
           options={{
-            title: "Skeniraj Album",
+            title: "Skeniraj album",
           }}
         />
 
@@ -55,7 +62,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="about"
           options={{
-            title: "O Aplikaciji",
+            title: "O aplikaciji",
           }}
         />
       </Stack>

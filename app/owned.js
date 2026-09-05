@@ -8,24 +8,23 @@ import { useCollection } from "../src/CollectionContext";
 
 import AppBackground from "../src/AppBackground";
 
+import BottomNavigation from "../src/BottomNavigation";
+
 const SECTIONS = [
   {
     id: 1,
-    title: "",
     range: "1 – 80",
     start: 1,
     end: 80,
   },
   {
     id: 2,
-    title: "",
     range: "81 – 160",
     start: 81,
     end: 160,
   },
   {
     id: 3,
-    title: "",
     range: "161 – 250",
     start: 161,
     end: 250,
@@ -33,6 +32,8 @@ const SECTIONS = [
 ];
 
 const PAIRS_PER_ROW = 5;
+
+const TOTAL_STICKERS = 250;
 
 /*
   One visual tile contains two stickers.
@@ -175,7 +176,7 @@ export default function OwnedScreen() {
     clearAllOwned,
   } = useCollection();
 
-  const allSelected = ownedStickers.length === 250;
+  const allSelected = ownedStickers.length === TOTAL_STICKERS;
 
   /*
     Convert:
@@ -203,7 +204,7 @@ export default function OwnedScreen() {
   }
 
   return (
-    <AppBackground>
+    <AppBackground variant="green">
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         {/* Collection summary */}
 
@@ -225,7 +226,7 @@ export default function OwnedScreen() {
           <View style={styles.divider} />
 
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryNumber}>250</Text>
+            <Text style={styles.summaryNumber}>{TOTAL_STICKERS}</Text>
 
             <Text style={styles.summaryLabel}>Ukupno</Text>
           </View>
@@ -247,7 +248,9 @@ export default function OwnedScreen() {
             {allSelected && <Text style={styles.checkmark}>✓</Text>}
           </View>
 
-          <Text style={styles.selectAllText}>Odaberi sve</Text>
+          <Text style={styles.selectAllText}>
+            {allSelected ? "Poništi sve" : "Odaberi sve"}
+          </Text>
         </Pressable>
 
         {/* Sticker sections */}
@@ -258,8 +261,6 @@ export default function OwnedScreen() {
           return (
             <View key={section.id} style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-
                 <Text style={styles.sectionRange}>{section.range}</Text>
               </View>
 
@@ -272,6 +273,7 @@ export default function OwnedScreen() {
           );
         })}
       </ScrollView>
+      <BottomNavigation />
     </AppBackground>
   );
 }
@@ -286,7 +288,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 10,
 
-    paddingBottom: 50,
+    paddingBottom: 110,
   },
 
   /*
@@ -361,18 +363,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  sectionTitle: {
-    fontSize: 18,
-
-    fontWeight: "bold",
-
-    color: "#111",
-  },
-
   sectionRange: {
     fontSize: 13,
-
-    color: "#777",
+    color: "#2e7d4f",
+    fontWeight: "700",
   },
 
   /*
@@ -384,16 +378,14 @@ const styles = StyleSheet.create({
   },
 
   /*
-      Important:
+  Every row contains 5 pair tiles.
 
-      Every row contains exactly
-      ten children.
+  Each pair tile represents
+  two sticker numbers.
 
-      Each child gets flex: 1.
-
-      Therefore every row always has
-      exactly ten equal-width tiles.
-    */
+  Therefore every full row shows
+  10 sticker numbers.
+*/
 
   gridRow: {
     width: "100%",

@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -11,15 +12,23 @@ import Constants from "expo-constants";
 
 import AppBackground from "../src/AppBackground";
 
+import BottomNavigation from "../src/BottomNavigation";
+
 export default function AboutScreen() {
   const appVersion = Constants.expoConfig?.version || "1.0.0";
 
-  function openPrivacyPolicy() {
-    Linking.openURL("https://gohan279.github.io/skupljanje-slicica-privacy/");
+  async function openPrivacyPolicy() {
+    try {
+      await Linking.openURL(
+        "https://gohan279.github.io/skupljanje-slicica-privacy/",
+      );
+    } catch {
+      Alert.alert("Greška", "Nije moguće otvoriti pravila privatnosti.");
+    }
   }
 
   return (
-    <AppBackground>
+    <AppBackground variant="green">
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Skupljanje Sličica</Text>
 
@@ -30,7 +39,7 @@ export default function AboutScreen() {
 
           <Text style={styles.text}>
             Skupljanje Sličica je aplikacija za jednostavno praćenje kolekcije
-            sličica albuma Životinjsko Carstvo.
+            sličica i organiziranje razmjene s drugim kolekcionarima.
           </Text>
 
           <Text style={styles.text}>
@@ -122,6 +131,7 @@ export default function AboutScreen() {
 
         <Text style={styles.footer}>© 2026</Text>
       </ScrollView>
+      <BottomNavigation />
     </AppBackground>
   );
 }
@@ -134,7 +144,7 @@ const styles = StyleSheet.create({
 
   content: {
     padding: 18,
-    paddingBottom: 50,
+    paddingBottom: 110,
   },
 
   title: {

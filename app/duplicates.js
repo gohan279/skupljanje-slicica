@@ -8,6 +8,8 @@ import { useCollection } from "../src/CollectionContext";
 
 import AppBackground from "../src/AppBackground";
 
+import BottomNavigation from "../src/BottomNavigation";
+
 const SECTIONS = [
   {
     id: 1,
@@ -30,6 +32,8 @@ const SECTIONS = [
 ];
 
 const PAIRS_PER_ROW = 5;
+
+const TOTAL_STICKERS = 250;
 
 function DuplicatePair({ first, second, duplicates, onCycle }) {
   const firstCount = Number(duplicates[first] || 0);
@@ -152,7 +156,7 @@ export default function DuplicatesScreen() {
   } = useCollection();
 
   const allSelected = Array.from(
-    { length: 250 },
+    { length: TOTAL_STICKERS },
     (_, index) => index + 1,
   ).every((number) => Number(duplicates[number] || 0) > 0);
 
@@ -175,7 +179,7 @@ export default function DuplicatesScreen() {
   ).length;
 
   return (
-    <AppBackground>
+    <AppBackground variant="green">
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <View style={styles.summary}>
           <View style={styles.summaryItem}>
@@ -211,7 +215,9 @@ export default function DuplicatesScreen() {
             {allSelected && <Text style={styles.checkmark}>✓</Text>}
           </View>
 
-          <Text style={styles.selectAllText}>Odaberi sve</Text>
+          <Text style={styles.selectAllText}>
+            {allSelected ? "Poništi sve" : "Odaberi sve"}
+          </Text>
         </Pressable>
 
         {SECTIONS.map((section) => {
@@ -232,6 +238,7 @@ export default function DuplicatesScreen() {
           );
         })}
       </ScrollView>
+      <BottomNavigation />
     </AppBackground>
   );
 }
@@ -244,7 +251,7 @@ const styles = StyleSheet.create({
 
   content: {
     padding: 10,
-    paddingBottom: 50,
+    paddingBottom: 110,
   },
 
   summary: {
@@ -304,15 +311,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#111",
-  },
-
   sectionRange: {
     fontSize: 13,
-    color: "#777",
+    color: "#2e7d4f",
+    fontWeight: "700",
   },
 
   grid: {

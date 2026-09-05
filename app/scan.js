@@ -8,6 +8,10 @@ import { useRouter } from "expo-router";
 
 import { parseSharePayload } from "../src/stickers";
 
+import AppBackground from "../src/AppBackground";
+
+import BottomNavigation from "../src/BottomNavigation";
+
 export default function ScanScreen() {
   const router = useRouter();
 
@@ -15,46 +19,49 @@ export default function ScanScreen() {
 
   const [scanned, setScanned] = useState(false);
 
-  /*
-    Expo is still checking
-    camera permission.
-  */
   if (!permission) {
     return (
-      <View style={styles.center}>
-        <Text>Provjera dopuštenja za kameru...</Text>
-      </View>
+      <AppBackground variant="green">
+        <View style={styles.center}>
+          <Text style={styles.loadingText}>
+            Provjera dopuštenja za kameru...
+          </Text>
+
+          <BottomNavigation />
+        </View>
+      </AppBackground>
     );
   }
 
-  /*
-    Camera permission
-    has not been granted.
-  */
   if (!permission.granted) {
     return (
-      <View style={styles.permissionScreen}>
-        <Text style={styles.permissionTitle}>
-          Potrebno je dopuštenje za kameru
-        </Text>
+      <AppBackground variant="green">
+        <View style={styles.permissionScreen}>
+          <View style={styles.permissionCard}>
+            <Text style={styles.permissionTitle}>
+              Potrebno je dopuštenje za kameru
+            </Text>
 
-        <Text style={styles.permissionText}>
-          Aplikacija treba pristup kameri kako bi mogla skenirati QR kod drugog
-          kolekcionara.
-        </Text>
+            <Text style={styles.permissionText}>
+              Aplikacija treba pristup kameri kako bi mogla skenirati QR kod
+              drugog kolekcionara.
+            </Text>
 
-        <Pressable style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Dopusti kameru</Text>
-        </Pressable>
-      </View>
+            <Pressable
+              style={styles.permissionButton}
+              onPress={requestPermission}
+            >
+              <Text style={styles.permissionButtonText}>Dopusti kameru</Text>
+            </Pressable>
+          </View>
+
+          <BottomNavigation />
+        </View>
+      </AppBackground>
     );
   }
 
   function handleBarcodeScanned({ data }) {
-    /*
-      Prevent multiple scans of
-      the same QR.
-    */
     if (scanned) {
       return;
     }
@@ -62,20 +69,8 @@ export default function ScanScreen() {
     setScanned(true);
 
     try {
-      /*
-        Make sure this is one of
-        our application's QR codes.
-      */
       const sharedCollection = parseSharePayload(data);
 
-      /*
-        Send the decoded collection
-        to the comparison screen.
-
-        Expo Router parameters should
-        be strings, so convert the
-        object back to JSON.
-      */
       router.replace({
         pathname: "/compare",
 
@@ -86,13 +81,10 @@ export default function ScanScreen() {
     } catch {
       Alert.alert(
         "Neispravan QR kod",
-
         "Ovaj QR kod ne sadrži podatke iz aplikacije Skupljanje Sličica.",
-
         [
           {
             text: "Skeniraj ponovno",
-
             onPress: () => setScanned(false),
           },
         ],
@@ -101,93 +93,104 @@ export default function ScanScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <CameraView
-        style={StyleSheet.absoluteFill}
-        facing="back"
-        barcodeScannerSettings={{
-          barcodeTypes: ["qr"],
-        }}
-        onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-      />
+    <AppBackground variant="green">
+      <View style={styles.container}>
+        <CameraView
+          style={StyleSheet.absoluteFill}
+          facing="back"
+          barcodeScannerSettings={{
+            barcodeTypes: ["qr"],
+          }}
+          onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+        />
 
-      {/* Dark overlay */}
+        <View style={styles.overlay} pointerEvents="none">
+          <Text style={styles.title}>Skeniraj QR kod</Text>
 
-      <View style={styles.overlay} pointerEvents="none">
-        <Text style={styles.title}>Skeniraj QR Kod</Text>
+          <Text style={styles.instructions}>
+            Usmjeri kameru prema QR kodu drugog kolekcionara.
+          </Text>
 
-        <Text style={styles.instructions}>
-          Usmjeri kameru prema QR kodu drugog kolekcionara.
-        </Text>
+          <View style={styles.scanFrame} />
 
-        {/* Visual scanning frame */}
+          <Text style={styles.bottomText}>
+            Usporedba će se pokrenuti automatski.
+          </Text>
+        </View>
 
-        <View style={styles.scanFrame} />
-
-        <Text style={styles.bottomText}>
-          Usporedba će se pokrenuti automatski.
-        </Text>
+        <BottomNavigation />
       </View>
-    </View>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-
     backgroundColor: "#000000",
   },
 
   center: {
     flex: 1,
-
     justifyContent: "center",
-
     alignItems: "center",
+    paddingBottom: 90,
+  },
+
+  loadingText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
   },
 
   permissionScreen: {
     flex: 1,
-
     justifyContent: "center",
-
     alignItems: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 100,
+  },
 
-    padding: 30,
+  permissionCard: {
+    width: "100%",
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    padding: 24,
 
-    backgroundColor: "#f4f4f4",
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
+    elevation: 4,
   },
 
   permissionTitle: {
     fontSize: 23,
-
     fontWeight: "bold",
-
-    color: "#222",
-
+    color: "#222222",
     marginBottom: 12,
-
     textAlign: "center",
   },
 
   permissionText: {
     fontSize: 15,
-
-    color: "#666",
-
+    color: "#666666",
     lineHeight: 21,
-
     textAlign: "center",
-
     marginBottom: 25,
   },
 
   permissionButton: {
-    backgroundColor: "#2e7d4f",
+    backgroundColor: "#2e9f57",
     paddingVertical: 14,
     paddingHorizontal: 25,
-    borderRadius: 10,
+    borderRadius: 12,
+    alignSelf: "center",
   },
 
   permissionButtonText: {
@@ -202,53 +205,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
 
     paddingTop: 60,
-
     paddingHorizontal: 25,
+    paddingBottom: 100,
   },
 
   title: {
     color: "#ffffff",
-
     fontSize: 25,
-
     fontWeight: "bold",
-
     textAlign: "center",
   },
 
   instructions: {
     color: "#ffffff",
-
     fontSize: 14,
-
     textAlign: "center",
-
     lineHeight: 20,
-
     marginTop: 8,
   },
 
   scanFrame: {
     width: 270,
-
     height: 270,
-
     borderWidth: 3,
-
     borderColor: "#ffffff",
-
     borderRadius: 20,
-
     marginTop: 50,
   },
 
   bottomText: {
     color: "#ffffff",
-
     fontSize: 13,
-
     textAlign: "center",
-
     marginTop: 35,
   },
 });

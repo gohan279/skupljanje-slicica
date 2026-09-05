@@ -8,6 +8,8 @@ import React, {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { TOTAL_STICKERS } from "./stickers";
+
 const STORAGE_KEY = "@zivotinjsko_carstvo_albums_v1";
 
 const OLD_STORAGE_KEY = "@zivotinjsko_carstvo_collection";
@@ -350,7 +352,7 @@ export function CollectionProvider({ children }) {
 
   const ownedCount = ownedStickers.length;
 
-  const missingCount = 250 - ownedCount;
+  const missingCount = TOTAL_STICKERS - ownedCount;
 
   const duplicateCount = Object.values(duplicates).reduce(
     (total, quantity) => total + Number(quantity || 0),
@@ -362,7 +364,10 @@ export function CollectionProvider({ children }) {
     updateSelectedAlbum((album) => {
       return {
         ...album,
-        ownedStickers: Array.from({ length: 250 }, (_, index) => index + 1),
+        ownedStickers: Array.from(
+          { length: TOTAL_STICKERS },
+          (_, index) => index + 1,
+        ),
       };
     });
   }
@@ -381,14 +386,17 @@ export function CollectionProvider({ children }) {
     updateSelectedAlbum((album) => {
       const allDuplicates = {};
 
-      for (let number = 1; number <= 250; number++) {
+      for (let number = 1; number <= TOTAL_STICKERS; number++) {
         allDuplicates[number] = 1;
       }
 
       return {
         ...album,
 
-        ownedStickers: Array.from({ length: 250 }, (_, index) => index + 1),
+        ownedStickers: Array.from(
+          { length: TOTAL_STICKERS },
+          (_, index) => index + 1,
+        ),
 
         duplicates: allDuplicates,
       };

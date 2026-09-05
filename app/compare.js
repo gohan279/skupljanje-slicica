@@ -15,6 +15,8 @@ import {
 
 import AppBackground from "../src/AppBackground";
 
+import BottomNavigation from "../src/BottomNavigation";
+
 function TradeList({ title, numbers, emptyText }) {
   return (
     <View style={styles.tradeCard}>
@@ -163,11 +165,15 @@ export default function CompareScreen() {
 
   if (!selectedAlbum || !sharedCollection || !allTrades || !sectionTrades) {
     return (
-      <View style={styles.errorScreen}>
-        <Text style={styles.errorText}>
-          Could not read collection comparison data.
-        </Text>
-      </View>
+      <AppBackground variant="green">
+        <View style={styles.errorScreen}>
+          <Text style={styles.errorText}>
+            Nije moguće učitati podatke za usporedbu kolekcija.
+          </Text>
+
+          <BottomNavigation />
+        </View>
+      </AppBackground>
     );
   }
 
@@ -209,7 +215,7 @@ export default function CompareScreen() {
     : allTrades.theyCanGive;
 
   return (
-    <AppBackground>
+    <AppBackground variant="green">
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Text style={styles.heading}>Razmjena</Text>
 
@@ -284,36 +290,49 @@ export default function CompareScreen() {
 
         {sameSectionOnly && (
           <View>
-            {sections.map((section) => {
-              const giveNumbers = sectionTrades.giveBySection[section.id];
+            {sections
+              .filter((section) => {
+                const giveNumbers =
+                  sectionTrades.giveBySection[section.id] || [];
 
-              const receiveNumbers = sectionTrades.receiveBySection[section.id];
+                const receiveNumbers =
+                  sectionTrades.receiveBySection[section.id] || [];
 
-              return (
-                <View key={section.id} style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>{section.title}</Text>
+                return giveNumbers.length > 0 && receiveNumbers.length > 0;
+              })
+              .map((section) => {
+                const giveNumbers =
+                  sectionTrades.giveBySection[section.id] || [];
 
-                    <Text style={styles.sectionRange}>{section.range}</Text>
+                const receiveNumbers =
+                  sectionTrades.receiveBySection[section.id] || [];
+
+                return (
+                  <View key={section.id} style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Text style={styles.sectionTitle}>{section.title}</Text>
+
+                      <Text style={styles.sectionRange}>{section.range}</Text>
+                    </View>
+
+                    <TradeList
+                      title="Možeš dati"
+                      numbers={giveNumbers}
+                      emptyText="Nema duplića za zamjenu u ovoj sekciji."
+                    />
+
+                    <TradeList
+                      title="Mogu ti dati"
+                      numbers={receiveNumbers}
+                      emptyText="Nemaju dupliće koje trebaš u ovoj sekciji."
+                    />
                   </View>
-
-                  <TradeList
-                    title="Možeš dati"
-                    numbers={giveNumbers}
-                    emptyText="Nema duplića za zamjenu u ovoj sekciji."
-                  />
-
-                  <TradeList
-                    title="Mogu ti dati"
-                    numbers={receiveNumbers}
-                    emptyText="Nemaju dupliće koje trebaš u ovoj sekciji."
-                  />
-                </View>
-              );
-            })}
+                );
+              })}
           </View>
         )}
       </ScrollView>
+      <BottomNavigation />
     </AppBackground>
   );
 }
@@ -326,7 +345,7 @@ const styles = StyleSheet.create({
 
   content: {
     padding: 16,
-    paddingBottom: 50,
+    paddingBottom: 110,
   },
 
   errorScreen: {
@@ -337,8 +356,10 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: "#666",
+    color: "#ffffff",
     textAlign: "center",
+    fontSize: 15,
+    fontWeight: "600",
   },
 
   heading: {

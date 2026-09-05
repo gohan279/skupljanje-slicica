@@ -1,147 +1,125 @@
-import React, { useMemo } from "react";
+import React, { useRef } from "react";
 
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import QRCode from "react-native-qrcode-svg";
 
-import { useCollection } from "../src/CollectionContext";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
 
-import {
-  createSharePayload,
-  getDuplicateStickerNumbers,
-  getMissingStickers,
-  groupBySection,
-} from "../src/stickers";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import AppBackground from "../src/AppBackground";
 
-function StickerList({ title, numbers }) {
-  return (
-    <View style={styles.listCard}>
-      <Text style={styles.listTitle}>{title}</Text>
+import BottomNavigation from "../src/BottomNavigation";
 
-      <Text style={styles.listText}>
-        {numbers.length > 0 ? numbers.join(", ") : "Nema"}
-      </Text>
-    </View>
-  );
-}
+import { useCollection } from "../src/CollectionContext";
+
+import { createSharePayload } from "../src/stickers";
 
 export default function ShareScreen() {
   const { selectedAlbum } = useCollection();
 
-  const missing = useMemo(
-    () =>
-      selectedAlbum
-        ? getMissingStickers(selectedAlbum.ownedStickers || [])
-        : [],
-
-    [selectedAlbum],
-  );
-
-  const duplicateNumbers = useMemo(
-    () =>
-      selectedAlbum
-        ? getDuplicateStickerNumbers(selectedAlbum.duplicates || {})
-        : [],
-
-    [selectedAlbum],
-  );
-
-  const payload = useMemo(
-    () => (selectedAlbum ? createSharePayload(selectedAlbum) : ""),
-
-    [selectedAlbum],
-  );
-
-  const missingBySection = groupBySection(missing);
-
-  const duplicatesBySection = groupBySection(duplicateNumbers);
+  const qrRef = useRef(null);
 
   if (!selectedAlbum) {
     return (
-      <View style={styles.emptyScreen}>
-        <Text>Nije odabran album.</Text>
-      </View>
+      <AppBackground variant="green">
+        <SafeAreaView style={styles.screen}>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Nije odabran album.</Text>
+          </View>
+
+          <BottomNavigation />
+        </SafeAreaView>
+      </AppBackground>
     );
   }
 
+  const qrPayload = createSharePayload(selectedAlbum);
+
+  function shareQrCode() {
+    if (!qrRef.current) {
+      return;
+    }
+
+    qrRef.current.toDataURL(async (data) => {
+      try {
+        const available = await Sharing.isAvailableAsync();
+
+        if (!available) {
+          Alert.alert(
+            "Dijeljenje nije dostupno",
+            "Dijeljenje nije dostupno na ovom uređaju.",
+          );
+
+          return;
+        }
+
+        const fileUri = FileSystem.cacheDirectory + "skupljanje-slicica-qr.png";
+
+        await FileSystem.writeAsStringAsync(fileUri, data, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "image/png",
+          dialogTitle: "Podijeli album",
+        });
+      } catch (error) {
+        console.error(error);
+
+        Alert.alert("Greška", "QR kod nije moguće podijeliti.");
+      }
+    });
+  }
+
   return (
-    <AppBackground>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <Text style={styles.albumName}>{selectedAlbum.name}</Text>
+    <AppBackground variant="green">
+      <SafeAreaView style={styles.screen}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Podijeli album</Text>
 
-        {/* QR */}
+          <Text style={styles.albumName}>{selectedAlbum.name}</Text>
 
-        <View style={styles.qrContainer}>
-          <QRCode
-            value={payload}
-            size={260}
-            backgroundColor="#ffffff"
-            color="#111111"
-          />
-        </View>
+          <View style={styles.qrCard}>
+            <View style={styles.qrContainer}>
+              <QRCode
+                value={qrPayload}
+                size={220}
+                backgroundColor="#ffffff"
+                color="#111111"
+                getRef={(ref) => {
+                  qrRef.current = ref;
+                }}
+              />
+            </View>
 
-        {/* Summary */}
-
-        <View style={styles.summary}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryNumber}>{missing.length}</Text>
-
-            <Text style={styles.summaryLabel}>Nedostaju</Text>
+            <Text style={styles.scanText}>
+              Neka drugi korisnik skenira ovaj QR kod za usporedbu kolekcija.
+            </Text>
           </View>
 
-          <View style={styles.divider} />
+          <Pressable style={styles.shareButton} onPress={shareQrCode}>
+            <MaterialCommunityIcons
+              name="share-variant"
+              size={23}
+              color="#ffffff"
+            />
 
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryNumber}>{duplicateNumbers.length}</Text>
-
-            <Text style={styles.summaryLabel}>Duplići</Text>
-          </View>
+            <Text style={styles.shareButtonText}>Podijeli</Text>
+          </Pressable>
         </View>
 
-        <Text style={styles.heading}>Nedostaju</Text>
-
-        <StickerList title="Sekcija 1 · 1–80" numbers={missingBySection[1]} />
-
-        <StickerList title="Sekcija 2 · 81–160" numbers={missingBySection[2]} />
-
-        <StickerList
-          title="Sekcija 3 · 161–250"
-          numbers={missingBySection[3]}
-        />
-
-        <Text style={styles.heading}>Duplići</Text>
-
-        <StickerList
-          title="Sekcija 1 · 1–80"
-          numbers={duplicatesBySection[1]}
-        />
-
-        <StickerList
-          title="Sekcija 2 · 81–160"
-          numbers={duplicatesBySection[2]}
-        />
-
-        <StickerList
-          title="Sekcija 3 · 161–250"
-          numbers={duplicatesBySection[3]}
-        />
-
-        <View style={styles.privacyCard}>
-          <Text style={styles.privacyTitle}>Što sadrži ovaj QR kod?</Text>
-
-          <Text style={styles.privacyText}>
-            Samo naziv odabranog albuma te brojeve sličica koje nedostaju i
-            brojeve duplih sličica.
-          </Text>
-
-          <Text style={styles.privacyText}>
-            Ne sadrži e-mail adresu, broj telefona, lokaciju niti podatke
-            korisničkog računa.
-          </Text>
-        </View>
-      </ScrollView>
+        <BottomNavigation />
+      </SafeAreaView>
     </AppBackground>
   );
 }
@@ -149,159 +127,125 @@ export default function ShareScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-
     backgroundColor: "transparent",
   },
 
-  content: {
-    padding: 18,
-
-    paddingBottom: 50,
-
-    alignItems: "stretch",
+  container: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 22,
+    paddingTop: 30,
+    paddingBottom: 100,
   },
 
-  emptyScreen: {
-    flex: 1,
-
-    justifyContent: "center",
-
-    alignItems: "center",
+  title: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#ffffff",
+    textAlign: "center",
   },
 
   albumName: {
-    fontSize: 24,
-
-    fontWeight: "bold",
-
-    textAlign: "center",
-
-    color: "#222",
-
-    marginBottom: 8,
-  },
-
-  qrContainer: {
-    alignSelf: "center",
-
-    backgroundColor: "#ffffff",
-
-    padding: 18,
-
-    borderRadius: 16,
-
-    marginBottom: 22,
-  },
-
-  summary: {
-    flexDirection: "row",
-
-    backgroundColor: "#ffffff",
-
-    borderRadius: 14,
-
-    paddingVertical: 15,
-
+    fontSize: 15,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 5,
     marginBottom: 25,
   },
 
-  summaryItem: {
-    flex: 1,
+  qrCard: {
+    width: "100%",
+    maxWidth: 380,
 
-    alignItems: "center",
-  },
-
-  summaryNumber: {
-    fontSize: 25,
-
-    fontWeight: "bold",
-
-    color: "#222",
-  },
-
-  summaryLabel: {
-    marginTop: 3,
-
-    fontSize: 13,
-
-    color: "#777",
-  },
-
-  divider: {
-    width: 1,
-
-    height: 40,
-
-    backgroundColor: "#dddddd",
-  },
-
-  heading: {
-    fontSize: 20,
-
-    fontWeight: "bold",
-
-    color: "#222",
-
-    marginBottom: 10,
-
-    marginTop: 5,
-  },
-
-  listCard: {
     backgroundColor: "#ffffff",
 
-    borderRadius: 12,
+    borderRadius: 24,
 
-    padding: 14,
+    alignItems: "center",
 
-    marginBottom: 10,
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 25,
+
+    shadowColor: "#000000",
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+
+    elevation: 7,
   },
 
-  listTitle: {
+  qrContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    padding: 16,
+
+    borderWidth: 1,
+    borderColor: "#eeeeee",
+  },
+
+  scanText: {
+    marginTop: 23,
+
     fontSize: 15,
+    lineHeight: 22,
 
-    fontWeight: "bold",
+    color: "#555555",
 
-    color: "#333",
-
-    marginBottom: 7,
+    textAlign: "center",
+    fontWeight: "500",
   },
 
-  listText: {
-    fontSize: 14,
+  shareButton: {
+    width: "100%",
+    maxWidth: 380,
 
-    color: "#555",
+    marginTop: 20,
 
-    lineHeight: 21,
+    backgroundColor: "#f47b20",
+
+    borderRadius: 16,
+
+    paddingVertical: 15,
+
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+
+    gap: 9,
+
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+
+    elevation: 4,
   },
 
-  privacyCard: {
-    backgroundColor: "#e9f5ed",
+  shareButtonText: {
+    color: "#ffffff",
 
-    borderRadius: 14,
+    fontSize: 17,
 
-    padding: 15,
-
-    marginTop: 15,
+    fontWeight: "800",
   },
 
-  privacyTitle: {
-    fontSize: 15,
-
-    fontWeight: "bold",
-
-    color: "#24653f",
-
-    marginBottom: 7,
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 90,
   },
 
-  privacyText: {
-    fontSize: 13,
-
-    color: "#43634f",
-
-    lineHeight: 19,
-
-    marginBottom: 3,
+  emptyText: {
+    color: "#ffffff",
+    fontSize: 17,
+    fontWeight: "700",
   },
 });
