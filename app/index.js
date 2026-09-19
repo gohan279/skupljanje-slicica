@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 18,
     paddingTop: 28,
-    paddingBottom: 110,
+    paddingBottom: 140,
   },
 
   /* LOGO */

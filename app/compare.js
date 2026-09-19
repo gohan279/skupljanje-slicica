@@ -4,6 +4,8 @@ import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 import { useLocalSearchParams } from "expo-router";
 
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { useCollection } from "../src/CollectionContext";
 
 import {
@@ -217,13 +219,46 @@ export default function CompareScreen() {
   return (
     <AppBackground variant="green">
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <Text style={styles.heading}>Razmjena</Text>
+        <View style={styles.albumComparisonContainer}>
+          {/* Moj album */}
+          <View style={styles.albumSide}>
+            <View style={styles.albumIcon}>
+              <MaterialCommunityIcons
+                name="book-open-page-variant"
+                size={32}
+                color="#ffffff"
+              />
+            </View>
 
-        <Text style={styles.albumComparison}>{selectedAlbum.name}</Text>
+            <Text style={styles.albumName} numberOfLines={2}>
+              {selectedAlbum.name}
+            </Text>
+          </View>
 
-        <Text style={styles.arrow}>↕</Text>
+          {/* Razmjena */}
+          <View style={styles.swapIcon}>
+            <MaterialCommunityIcons
+              name="swap-horizontal"
+              size={36}
+              color="#ffffff"
+            />
+          </View>
 
-        <Text style={styles.albumComparison}>{sharedCollection.albumName}</Text>
+          {/* Drugi album */}
+          <View style={styles.albumSide}>
+            <View style={styles.albumIcon}>
+              <MaterialCommunityIcons
+                name="book-open-page-variant"
+                size={32}
+                color="#ffffff"
+              />
+            </View>
+
+            <Text style={styles.albumName} numberOfLines={2}>
+              {sharedCollection.albumName}
+            </Text>
+          </View>
+        </View>
 
         {/* Same section switch */}
 
@@ -362,26 +397,53 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  heading: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#222",
-    textAlign: "center",
-    marginBottom: 14,
+  albumComparisonContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    marginTop: 6,
+    marginBottom: 6,
   },
 
-  albumComparison: {
-    fontSize: 17,
-    fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
+  albumSide: {
+    flex: 1,
+    alignItems: "center",
   },
 
-  arrow: {
-    fontSize: 24,
-    color: "#888",
+  albumIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: "#f47b20",
+    justifyContent: "center",
+    alignItems: "center",
+
+    shadowColor: "#000000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
+    elevation: 3,
+  },
+
+  swapIcon: {
+    width: 60,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 12,
+  },
+
+  albumName: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#ffffff",
     textAlign: "center",
-    marginVertical: 2,
+    marginTop: 8,
+    paddingHorizontal: 3,
   },
 
   toggleCard: {

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Share,
 } from "react-native";
 
 import QRCode from "react-native-qrcode-svg";
@@ -17,17 +18,60 @@ import * as FileSystem from "expo-file-system/legacy";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import AppBackground from "../src/AppBackground";
-
 import BottomNavigation from "../src/BottomNavigation";
 
 import { useCollection } from "../src/CollectionContext";
 
-import { createSharePayload } from "../src/stickers";
+import {
+  createSharePayload,
+  getMissingStickers,
+  getDuplicateStickerNumbers,
+} from "../src/stickers";
 
 export default function ShareScreen() {
   const { selectedAlbum } = useCollection();
 
   const qrRef = useRef(null);
+
+  // ---------------------------------------------------------
+  // SHARE COLLECTION AS TEXT
+  // ---------------------------------------------------------
+
+  async function shareAsText() {
+    if (!selectedAlbum) {
+      return;
+    }
+
+    const missing = getMissingStickers(selectedAlbum.ownedStickers || []);
+
+    const duplicates = getDuplicateStickerNumbers(
+      selectedAlbum.duplicates || {},
+    );
+
+    const missingText =
+      missing.length > 0 ? missing.join(", ") : "Nemam sličica koje tražim.";
+
+    const duplicatesText =
+      duplicates.length > 0
+        ? duplicates.join(", ")
+        : "Nemam duplića za zamjenu.";
+
+    const message = `Tražim: ${missingText}\n\n` + `Duplići: ${duplicatesText}`;
+
+    try {
+      await Share.share({
+        message,
+      });
+    } catch (error) {
+      console.error(error);
+
+      Alert.alert("Greška", "Nije moguće podijeliti popis sličica.");
+    }
+  }
+
+  // ---------------------------------------------------------
+  // NO SELECTED ALBUM
+  // ---------------------------------------------------------
 
   if (!selectedAlbum) {
     return (
@@ -43,7 +87,15 @@ export default function ShareScreen() {
     );
   }
 
+  // ---------------------------------------------------------
+  // QR PAYLOAD
+  // ---------------------------------------------------------
+
   const qrPayload = createSharePayload(selectedAlbum);
+
+  // ---------------------------------------------------------
+  // SHARE QR CODE
+  // ---------------------------------------------------------
 
   function shareQrCode() {
     if (!qrRef.current) {
@@ -81,14 +133,17 @@ export default function ShareScreen() {
     });
   }
 
+  // ---------------------------------------------------------
+  // SCREEN
+  // ---------------------------------------------------------
+
   return (
     <AppBackground variant="green">
       <SafeAreaView style={styles.screen}>
         <View style={styles.container}>
-          <Text style={styles.title}>Podijeli album</Text>
-
           <Text style={styles.albumName}>{selectedAlbum.name}</Text>
 
+          {/* QR CARD */}
           <View style={styles.qrCard}>
             <View style={styles.qrContainer}>
               <QRCode
@@ -107,14 +162,22 @@ export default function ShareScreen() {
             </Text>
           </View>
 
+          {/* SHARE QR BUTTON */}
           <Pressable style={styles.shareButton} onPress={shareQrCode}>
+            <MaterialCommunityIcons name="qrcode" size={23} color="#ffffff" />
+
+            <Text style={styles.shareButtonText}>Podijeli QR kod</Text>
+          </Pressable>
+
+          {/* SHARE TEXT BUTTON */}
+          <Pressable style={styles.textShareButton} onPress={shareAsText}>
             <MaterialCommunityIcons
-              name="share-variant"
+              name="format-list-numbered"
               size={23}
-              color="#ffffff"
+              color="#f47b20"
             />
 
-            <Text style={styles.shareButtonText}>Podijeli</Text>
+            <Text style={styles.textShareButtonText}>Podijeli kao tekst</Text>
           </Pressable>
         </View>
 
@@ -135,23 +198,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 22,
     paddingTop: 30,
-    paddingBottom: 100,
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#ffffff",
-    textAlign: "center",
+    paddingBottom: 110,
   },
 
   albumName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.85)",
-    marginTop: 5,
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#ffffff",
+    textAlign: "center",
     marginBottom: 25,
   },
+
+  // ---------------------------------------------------------
+  // QR CARD
+  // ---------------------------------------------------------
 
   qrCard: {
     width: "100%",
@@ -180,7 +240,9 @@ const styles = StyleSheet.create({
 
   qrContainer: {
     backgroundColor: "#ffffff",
+
     borderRadius: 18,
+
     padding: 16,
 
     borderWidth: 1,
@@ -196,8 +258,13 @@ const styles = StyleSheet.create({
     color: "#555555",
 
     textAlign: "center",
+
     fontWeight: "500",
   },
+
+  // ---------------------------------------------------------
+  // QR SHARE BUTTON
+  // ---------------------------------------------------------
 
   shareButton: {
     width: "100%",
@@ -236,16 +303,67 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
+  // ---------------------------------------------------------
+  // TEXT SHARE BUTTON
+  // ---------------------------------------------------------
+
+  textShareButton: {
+    width: "100%",
+    maxWidth: 380,
+
+    marginTop: 12,
+
+    backgroundColor: "#ffffff",
+
+    borderWidth: 2,
+    borderColor: "#f47b20",
+
+    borderRadius: 16,
+
+    paddingVertical: 14,
+
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+
+    gap: 9,
+
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
+    elevation: 3,
+  },
+
+  textShareButtonText: {
+    color: "#f47b20",
+
+    fontSize: 17,
+
+    fontWeight: "800",
+  },
+
+  // ---------------------------------------------------------
+  // EMPTY STATE
+  // ---------------------------------------------------------
+
   emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+
     paddingBottom: 90,
   },
 
   emptyText: {
     color: "#ffffff",
+
     fontSize: 17,
+
     fontWeight: "700",
   },
 });

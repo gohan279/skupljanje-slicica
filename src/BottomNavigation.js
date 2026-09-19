@@ -2,10 +2,12 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   function isActive(section) {
     if (section === "home") {
@@ -36,8 +38,20 @@ export default function BottomNavigation() {
     return isActive(section) ? "#f57c00" : "#999999";
   }
 
+  // Minimum padding keeps the navigation looking good even on devices
+  // where the bottom safe-area inset is 0.
+  const bottomPadding = Math.max(insets.bottom, 8);
+
   return (
-    <View style={styles.bottomNavigation}>
+    <View
+      style={[
+        styles.bottomNavigation,
+        {
+          height: 70 + bottomPadding,
+          paddingBottom: bottomPadding,
+        },
+      ]}
+    >
       {/* POČETNA */}
       <Pressable style={styles.navItem} onPress={() => router.replace("/")}>
         <MaterialCommunityIcons
@@ -114,16 +128,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
 
-    height: 78,
-
     flexDirection: "row",
-
     backgroundColor: "#ffffff",
 
     borderTopWidth: 1,
     borderTopColor: "#eeeeee",
-
-    paddingBottom: 8,
 
     shadowColor: "#000000",
     shadowOpacity: 0.08,

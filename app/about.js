@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  Image,
   View,
 } from "react-native";
 import Constants from "expo-constants";
@@ -30,7 +31,11 @@ export default function AboutScreen() {
   return (
     <AppBackground variant="green">
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Skupljanje Sličica</Text>
+        <Image
+          source={require("../assets/images/title-logo.png")}
+          style={styles.titleLogo}
+          resizeMode="contain"
+        />
 
         <Text style={styles.version}>Verzija {appVersion}</Text>
 
@@ -50,6 +55,8 @@ export default function AboutScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Mogućnosti</Text>
+
+          <Text style={styles.item}>• Dijeljenje popisa sličica kao tekst</Text>
 
           <Text style={styles.item}>• Praćenje sakupljenih sličica</Text>
           <Text style={styles.item}>
@@ -147,17 +154,9 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
 
-  title: {
-    fontSize: 27,
-    fontWeight: "bold",
-    textAlign: "center",
-    color: "#222",
-    marginBottom: 4,
-  },
-
   version: {
     fontSize: 14,
-    color: "#666",
+    color: "rgba(255,255,255,0.85)",
     textAlign: "center",
     marginBottom: 24,
   },
@@ -209,5 +208,13 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 15,
     fontWeight: "700",
+  },
+
+  titleLogo: {
+    width: "90%",
+    maxWidth: 340,
+    height: 110,
+    alignSelf: "center",
+    marginBottom: 5,
   },
 });

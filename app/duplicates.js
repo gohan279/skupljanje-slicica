@@ -1,6 +1,13 @@
 import React from "react";
 
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import Svg, { Line, Polygon } from "react-native-svg";
 
@@ -33,16 +40,17 @@ const SECTIONS = [
 
 const PAIRS_PER_ROW = 5;
 
-const TOTAL_STICKERS = 250;
-
-function DuplicatePair({ first, second, duplicates, onCycle }) {
+function DuplicatePair({ first, second, duplicates, ownedStickers, onCycle }) {
   const firstCount = Number(duplicates[first] || 0);
 
   const secondCount = second !== null ? Number(duplicates[second] || 0) : 0;
 
   const firstSelected = firstCount > 0;
-
   const secondSelected = secondCount > 0;
+
+  const firstOwned = ownedStickers.includes(first);
+
+  const secondOwned = second !== null ? ownedStickers.includes(second) : false;
 
   return (
     <View style={styles.pairTile}>
@@ -81,7 +89,11 @@ function DuplicatePair({ first, second, duplicates, onCycle }) {
       {/* Upper-left duplicate */}
       <Pressable style={styles.firstPressArea} onPress={() => onCycle(first)}>
         <Text
-          style={[styles.firstNumber, firstSelected && styles.selectedNumber]}
+          style={[
+            styles.firstNumber,
+            firstSelected && styles.selectedNumber,
+            !firstOwned && styles.notOwnedNumber,
+          ]}
         >
           {first}
         </Text>
@@ -98,8 +110,8 @@ function DuplicatePair({ first, second, duplicates, onCycle }) {
           <Text
             style={[
               styles.secondNumber,
-
               secondSelected && styles.selectedNumber,
+              !secondOwned && styles.notOwnedNumber,
             ]}
           >
             {second}
@@ -114,7 +126,7 @@ function DuplicatePair({ first, second, duplicates, onCycle }) {
   );
 }
 
-function DuplicateGrid({ pairs, duplicates, onCycle }) {
+function DuplicateGrid({ pairs, duplicates, ownedStickers, onCycle }) {
   const rows = [];
 
   for (let i = 0; i < pairs.length; i += PAIRS_PER_ROW) {
@@ -131,6 +143,7 @@ function DuplicateGrid({ pairs, duplicates, onCycle }) {
               first={pair.first}
               second={pair.second}
               duplicates={duplicates}
+              ownedStickers={ownedStickers}
               onCycle={onCycle}
             />
           ))}
@@ -149,16 +162,77 @@ function DuplicateGrid({ pairs, duplicates, onCycle }) {
 export default function DuplicatesScreen() {
   const {
     duplicates,
+    ownedStickers,
     cycleDuplicate,
     duplicateCount,
     selectAllDuplicates,
     clearAllDuplicates,
   } = useCollection();
 
-  const allSelected = Array.from(
-    { length: TOTAL_STICKERS },
-    (_, index) => index + 1,
-  ).every((number) => Number(duplicates[number] || 0) > 0);
+  /*
+    "All selected" now means:
+    every sticker that exists in
+    "Moje sličice" has at least
+    one duplicate.
+
+    Stickers that are not owned
+    are ignored.
+  */
+  const allSelected =
+    ownedStickers.length > 0 &&
+    ownedStickers.every((number) => Number(duplicates[number] || 0) > 0);
+
+  /*
+    Handle one duplicate press.
+
+    cycleDuplicate returns false
+    when the sticker is not owned.
+  */
+  function handleCycleDuplicate(number) {
+    const success = cycleDuplicate(number);
+
+    if (!success) {
+      Alert.alert(
+        "Sličica nije u albumu",
+        `Sličica ${number} nije označena kao sakupljena.\n\nPrvo je označite u "Moje sličice".`,
+        [
+          {
+            text: "U redu",
+          },
+        ],
+      );
+    }
+  }
+
+  /*
+    Select / clear all duplicates.
+
+    selectAllDuplicates only selects
+    stickers that already exist in
+    ownedStickers, so no warning is
+    displayed here.
+  */
+  function handleSelectAll() {
+    if (ownedStickers.length === 0) {
+      Alert.alert(
+        "Nema sličica u albumu",
+        'Prvo označite sličice koje posjedujete u "Moje sličice".',
+        [
+          {
+            text: "U redu",
+          },
+        ],
+      );
+
+      return;
+    }
+
+    if (allSelected) {
+      clearAllDuplicates();
+    } else {
+      selectAllDuplicates();
+    }
+  }
 
   function createPairs(section) {
     const pairs = [];
@@ -181,6 +255,7 @@ export default function DuplicatesScreen() {
   return (
     <AppBackground variant="green">
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        {/* SUMMARY */}
         <View style={styles.summary}>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryNumber}>
@@ -199,16 +274,8 @@ export default function DuplicatesScreen() {
           </View>
         </View>
 
-        <Pressable
-          style={styles.selectAllRow}
-          onPress={() => {
-            if (allSelected) {
-              clearAllDuplicates();
-            } else {
-              selectAllDuplicates();
-            }
-          }}
-        >
+        {/* SELECT ALL */}
+        <Pressable style={styles.selectAllRow} onPress={handleSelectAll}>
           <View
             style={[styles.checkbox, allSelected && styles.checkboxChecked]}
           >
@@ -220,6 +287,7 @@ export default function DuplicatesScreen() {
           </Text>
         </Pressable>
 
+        {/* SECTIONS */}
         {SECTIONS.map((section) => {
           const pairs = createPairs(section);
 
@@ -232,12 +300,14 @@ export default function DuplicatesScreen() {
               <DuplicateGrid
                 pairs={pairs}
                 duplicates={duplicates}
-                onCycle={cycleDuplicate}
+                ownedStickers={ownedStickers}
+                onCycle={handleCycleDuplicate}
               />
             </View>
           );
         })}
       </ScrollView>
+
       <BottomNavigation />
     </AppBackground>
   );
@@ -403,6 +473,18 @@ const styles = StyleSheet.create({
 
   selectedNumber: {
     color: "#ffffff",
+  },
+
+  /*
+    Stickers that are not owned are
+    slightly lighter on the duplicates
+    screen.
+
+    They can still be pressed, but
+    pressing them displays the warning.
+  */
+  notOwnedNumber: {
+    color: "#999999",
   },
 
   firstCount: {

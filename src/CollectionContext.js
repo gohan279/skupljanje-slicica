@@ -11,7 +11,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TOTAL_STICKERS } from "./stickers";
 
 const STORAGE_KEY = "@zivotinjsko_carstvo_albums_v1";
-
 const OLD_STORAGE_KEY = "@zivotinjsko_carstvo_collection";
 
 const CollectionContext = createContext(null);
@@ -190,14 +189,11 @@ export function CollectionProvider({ children }) {
 
       if (currentlyOwned.includes(number)) {
         /*
-            If sticker is removed
-            from owned, also remove
-            its duplicates because
-            that combination would
-            not make sense.
-          */
+          If sticker is removed from owned,
+          also remove its duplicates.
+        */
         const updatedDuplicates = {
-          ...album.duplicates,
+          ...(album.duplicates || {}),
         };
 
         delete updatedDuplicates[number];
@@ -223,8 +219,31 @@ export function CollectionProvider({ children }) {
     Duplicate quantity:
 
     0 → 1 → 2 → 3 → 0
+
+    IMPORTANT:
+    A duplicate can only be added if
+    the sticker already exists in
+    ownedStickers.
+
+    This function returns:
+      true  = duplicate can be changed
+      false = sticker is not owned
   */
   function cycleDuplicate(number) {
+    if (!selectedAlbum) {
+      return false;
+    }
+
+    const currentlyOwned = selectedAlbum.ownedStickers || [];
+
+    /*
+      Do not automatically add the
+      sticker to ownedStickers.
+    */
+    if (!currentlyOwned.includes(number)) {
+      return false;
+    }
+
     updateSelectedAlbum((album) => {
       const updatedDuplicates = {
         ...(album.duplicates || {}),
@@ -240,25 +259,20 @@ export function CollectionProvider({ children }) {
         updatedDuplicates[number] = nextCount;
       }
 
-      /*
-          A duplicate means the
-          sticker itself must also
-          be owned.
-        */
-      const updatedOwned = new Set(album.ownedStickers || []);
-
-      if (nextCount > 0) {
-        updatedOwned.add(number);
-      }
-
       return {
         ...album,
 
         duplicates: updatedDuplicates,
 
-        ownedStickers: [...updatedOwned].sort((a, b) => a - b),
+        /*
+          ownedStickers are deliberately
+          NOT changed here.
+        */
+        ownedStickers: album.ownedStickers || [],
       };
     });
+
+    return true;
   }
 
   function hasSticker(number) {
@@ -326,9 +340,9 @@ export function CollectionProvider({ children }) {
       const remaining = current.filter((album) => album.id !== albumId);
 
       /*
-          If all albums were deleted,
-          create a new empty one.
-        */
+        If all albums were deleted,
+        create a new empty one.
+      */
       if (remaining.length === 0) {
         const replacement = createEmptyAlbum("Album");
 
@@ -338,10 +352,9 @@ export function CollectionProvider({ children }) {
       }
 
       /*
-          If deleted album was
-          selected, select first
-          remaining album.
-        */
+        If deleted album was selected,
+        select first remaining album.
+      */
       if (selectedAlbumId === albumId) {
         setSelectedAlbumId(remaining[0].id);
       }
@@ -356,14 +369,17 @@ export function CollectionProvider({ children }) {
 
   const duplicateCount = Object.values(duplicates).reduce(
     (total, quantity) => total + Number(quantity || 0),
-
     0,
   );
 
+  /*
+    Select all owned stickers.
+  */
   function selectAllOwned() {
     updateSelectedAlbum((album) => {
       return {
         ...album,
+
         ownedStickers: Array.from(
           { length: TOTAL_STICKERS },
           (_, index) => index + 1,
@@ -372,41 +388,66 @@ export function CollectionProvider({ children }) {
     });
   }
 
+  /*
+    Clear all owned stickers.
+
+    Duplicates are also cleared because
+    duplicates cannot exist without the
+    base sticker being owned.
+  */
   function clearAllOwned() {
     updateSelectedAlbum((album) => {
       return {
         ...album,
+
         ownedStickers: [],
+
         duplicates: {},
       };
     });
   }
 
+  /*
+    Select all duplicates.
+
+    IMPORTANT:
+    Only stickers that already exist
+    in ownedStickers are marked as
+    duplicates.
+
+    ownedStickers are NOT changed.
+  */
   function selectAllDuplicates() {
     updateSelectedAlbum((album) => {
-      const allDuplicates = {};
+      const currentlyOwned = album.ownedStickers || [];
 
-      for (let number = 1; number <= TOTAL_STICKERS; number++) {
-        allDuplicates[number] = 1;
-      }
+      const updatedDuplicates = {
+        ...(album.duplicates || {}),
+      };
+
+      currentlyOwned.forEach((number) => {
+        if (Number(updatedDuplicates[number] || 0) === 0) {
+          updatedDuplicates[number] = 1;
+        }
+      });
 
       return {
         ...album,
-
-        ownedStickers: Array.from(
-          { length: TOTAL_STICKERS },
-          (_, index) => index + 1,
-        ),
-
-        duplicates: allDuplicates,
+        duplicates: updatedDuplicates,
       };
     });
   }
 
+  /*
+    Clear all duplicates.
+
+    Owned stickers remain unchanged.
+  */
   function clearAllDuplicates() {
     updateSelectedAlbum((album) => {
       return {
         ...album,
+
         duplicates: {},
       };
     });

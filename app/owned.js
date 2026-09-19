@@ -1,6 +1,13 @@
 import React from "react";
 
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import Svg, { Line, Polygon } from "react-native-svg";
 
@@ -35,18 +42,6 @@ const PAIRS_PER_ROW = 5;
 
 const TOTAL_STICKERS = 250;
 
-/*
-  One visual tile contains two stickers.
-
-  Example:
-
-  upper-left = 1
-  lower-right = 2
-
-  next tile:
-  upper-left = 3
-  lower-right = 4
-*/
 function StickerPair({ first, second, ownedStickers, onToggle }) {
   const firstSelected = first !== null && ownedStickers.includes(first);
 
@@ -54,7 +49,6 @@ function StickerPair({ first, second, ownedStickers, onToggle }) {
 
   return (
     <View style={styles.pairTile}>
-      {/* Visual diagonal tile */}
       <Svg
         width="100%"
         height="100%"
@@ -110,7 +104,6 @@ function StickerPair({ first, second, ownedStickers, onToggle }) {
           <Text
             style={[
               styles.secondNumber,
-
               secondSelected && styles.selectedNumber,
             ]}
           >
@@ -143,18 +136,6 @@ function StickerGrid({ pairs, ownedStickers, onToggle }) {
             />
           ))}
 
-          {/*
-              Section 3 last row:
-
-              241–250
-
-              That's only 5 tiles.
-
-              Add 5 invisible spacer tiles
-              so the existing five stay the
-              same size as every other row.
-            */}
-
           {Array.from({
             length: PAIRS_PER_ROW - row.length,
           }).map((_, index) => (
@@ -169,6 +150,7 @@ function StickerGrid({ pairs, ownedStickers, onToggle }) {
 export default function OwnedScreen() {
   const {
     ownedStickers,
+    duplicates,
     toggleOwnedSticker,
     ownedCount,
     missingCount,
@@ -179,16 +161,62 @@ export default function OwnedScreen() {
   const allSelected = ownedStickers.length === TOTAL_STICKERS;
 
   /*
-    Convert:
-
-    1,2,3,4,5,6...
-
-    into:
-
-    { first: 1, second: 2 }
-    { first: 3, second: 4 }
-    { first: 5, second: 6 }
+    Check whether at least one
+    duplicate has been entered.
   */
+  const hasDuplicates = Object.values(duplicates || {}).some(
+    (quantity) => Number(quantity) > 0,
+  );
+
+  /*
+    Handles "Odaberi sve" / "Poništi sve".
+
+    If duplicates exist, clearing all owned
+    stickers requires confirmation because
+    clearAllOwned() also deletes duplicates.
+  */
+  function handleSelectAll() {
+    if (!allSelected) {
+      selectAllOwned();
+      return;
+    }
+
+    /*
+      No duplicates exist, so we can
+      safely clear everything immediately.
+    */
+    if (!hasDuplicates) {
+      clearAllOwned();
+      return;
+    }
+
+    /*
+      Duplicates exist.
+
+      Warn the user before deleting them.
+    */
+    Alert.alert(
+      "Upozorenje",
+      "Ovom akcijom poništit će se sve označene sličice i obrisati svi uneseni duplići.\n\nŽelite li nastaviti?",
+      [
+        {
+          text: "Odustani",
+          style: "cancel",
+        },
+        {
+          text: "Poništi sve",
+          style: "destructive",
+          onPress: () => {
+            clearAllOwned();
+          },
+        },
+      ],
+      {
+        cancelable: true,
+      },
+    );
+  }
+
   function createPairs(section) {
     const pairs = [];
 
@@ -207,7 +235,6 @@ export default function OwnedScreen() {
     <AppBackground variant="green">
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         {/* Collection summary */}
-
         <View style={styles.summary}>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryNumber}>{ownedCount}</Text>
@@ -232,16 +259,8 @@ export default function OwnedScreen() {
           </View>
         </View>
 
-        <Pressable
-          style={styles.selectAllRow}
-          onPress={() => {
-            if (allSelected) {
-              clearAllOwned();
-            } else {
-              selectAllOwned();
-            }
-          }}
-        >
+        {/* Select all / Clear all */}
+        <Pressable style={styles.selectAllRow} onPress={handleSelectAll}>
           <View
             style={[styles.checkbox, allSelected && styles.checkboxChecked]}
           >
@@ -254,7 +273,6 @@ export default function OwnedScreen() {
         </Pressable>
 
         {/* Sticker sections */}
-
         {SECTIONS.map((section) => {
           const pairs = createPairs(section);
 
@@ -273,6 +291,7 @@ export default function OwnedScreen() {
           );
         })}
       </ScrollView>
+
       <BottomNavigation />
     </AppBackground>
   );
@@ -281,19 +300,13 @@ export default function OwnedScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-
     backgroundColor: "transparent",
   },
 
   content: {
     padding: 10,
-
     paddingBottom: 110,
   },
-
-  /*
-      Summary
-    */
 
   summary: {
     backgroundColor: "#ffffff",
@@ -311,37 +324,26 @@ const styles = StyleSheet.create({
 
   summaryItem: {
     flex: 1,
-
     alignItems: "center",
   },
 
   summaryNumber: {
     fontSize: 24,
-
     fontWeight: "bold",
-
     color: "#222",
   },
 
   summaryLabel: {
     marginTop: 3,
-
     fontSize: 13,
-
     color: "#777",
   },
 
   divider: {
     width: 1,
-
     height: 40,
-
     backgroundColor: "#dddddd",
   },
-
-  /*
-      Sections
-    */
 
   section: {
     backgroundColor: "#ffffff",
@@ -369,23 +371,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  /*
-      Sticker grid
-    */
-
   grid: {
     width: "100%",
   },
-
-  /*
-  Every row contains 5 pair tiles.
-
-  Each pair tile represents
-  two sticker numbers.
-
-  Therefore every full row shows
-  10 sticker numbers.
-*/
 
   gridRow: {
     width: "100%",
@@ -396,14 +384,6 @@ const styles = StyleSheet.create({
 
     marginBottom: 2,
   },
-
-  /*
-      One pair tile.
-
-      aspectRatio 1.25 gives us
-      a rectangle similar to the
-      physical sticker album layout.
-    */
 
   pairTile: {
     flex: 1,
@@ -417,12 +397,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
 
-  /*
-      Invisible placeholders used
-      only for the last row of
-      Section 3.
-    */
-
   emptyTile: {
     flex: 1,
 
@@ -430,18 +404,6 @@ const styles = StyleSheet.create({
 
     minWidth: 0,
   },
-
-  /*
-      Upper-left button.
-
-      We intentionally position the
-      touch zone near the upper-left
-      number.
-
-      Tapping 1 toggles sticker 1.
-      Tapping 3 toggles sticker 3.
-      etc.
-    */
 
   firstPressArea: {
     position: "absolute",
@@ -462,14 +424,6 @@ const styles = StyleSheet.create({
     paddingLeft: 3,
   },
 
-  /*
-      Lower-right button.
-
-      Tapping 2 toggles sticker 2.
-      Tapping 4 toggles sticker 4.
-      etc.
-    */
-
   secondPressArea: {
     position: "absolute",
 
@@ -488,10 +442,6 @@ const styles = StyleSheet.create({
     paddingRight: 3,
     paddingBottom: 2,
   },
-
-  /*
-      Numbers
-    */
 
   firstNumber: {
     fontSize: 13,
