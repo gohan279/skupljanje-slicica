@@ -4,6 +4,7 @@ import {
   Alert,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -140,7 +141,11 @@ export default function ShareScreen() {
   return (
     <AppBackground variant="green">
       <SafeAreaView style={styles.screen}>
-        <View style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.albumName}>{selectedAlbum.name}</Text>
 
           {/* QR CARD */}
@@ -179,7 +184,7 @@ export default function ShareScreen() {
 
             <Text style={styles.textShareButtonText}>Podijeli kao tekst</Text>
           </Pressable>
-        </View>
+        </ScrollView>
 
         <BottomNavigation />
       </SafeAreaView>
@@ -193,12 +198,18 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
 
-  container: {
+  scrollView: {
     flex: 1,
+  },
+
+  container: {
     alignItems: "center",
     paddingHorizontal: 22,
     paddingTop: 30,
-    paddingBottom: 110,
+
+    // Dovoljno prostora da se zadnji gumb može
+    // odscrollati iznad BottomNavigation bara.
+    paddingBottom: 140,
   },
 
   albumName: {
