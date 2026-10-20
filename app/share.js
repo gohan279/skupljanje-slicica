@@ -12,6 +12,10 @@ import {
 } from "react-native";
 
 import QRCode from "react-native-qrcode-svg";
+import * as ImagePicker from "expo-image-picker";
+import { Camera } from "expo-camera";
+import { useRouter } from "expo-router";
+import { parseSharePayload } from "../src/stickers";
 
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
@@ -31,6 +35,31 @@ import {
 
 export default function ShareScreen() {
   const { selectedAlbum } = useCollection();
+  const router = useRouter();
+
+  async function scanFromGallery() {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+      const codes = await Camera.scanFromURLAsync(result.assets[0].uri, ["qr"]);
+      if (!codes?.length) {
+        Alert.alert("QR kod nije pronađen", "Na odabranoj slici nije pronađen QR kod.");
+        return;
+      }
+      let collection;
+      try {
+        collection = parseSharePayload(codes[0].data);
+      } catch {
+        Alert.alert("Neispravan QR kod", "Ovaj QR kod ne sadrži podatke iz aplikacije Skupljanje Sličica.");
+        return;
+      }
+      router.push({ pathname: "/compare", params: { shared: JSON.stringify(collection) } });
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Greška", "Nije moguće pročitati QR kod s odabrane fotografije.");
+    }
+  }
+
 
   const qrRef = useRef(null);
 
@@ -172,6 +201,11 @@ export default function ShareScreen() {
             <MaterialCommunityIcons name="qrcode" size={23} color="#ffffff" />
 
             <Text style={styles.shareButtonText}>Podijeli QR kod</Text>
+          </Pressable>
+
+          <Pressable style={styles.textShareButton} onPress={scanFromGallery}>
+            <MaterialCommunityIcons name="image-search-outline" size={23} color="#f47b20" />
+            <Text style={styles.textShareButtonText}>Skeniraj QR iz galerije</Text>
           </Pressable>
 
           {/* SHARE TEXT BUTTON */}

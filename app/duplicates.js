@@ -1,11 +1,13 @@
-import React from "react";
+import { useState } from "react";
 
 import {
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
@@ -163,7 +165,7 @@ export default function DuplicatesScreen() {
   const {
     duplicates,
     ownedStickers,
-    cycleDuplicate,
+    setDuplicateQuantity,
     duplicateCount,
     selectAllDuplicates,
     clearAllDuplicates,
@@ -188,30 +190,41 @@ export default function DuplicatesScreen() {
     cycleDuplicate returns false
     when the sticker is not owned.
   */
-  function handleCycleDuplicate(number) {
-    const success = cycleDuplicate(number);
+  const [editingNumber, setEditingNumber] = useState(null);
+  const [quantityText, setQuantityText] = useState("0");
 
-    if (!success) {
+  function handleCycleDuplicate(number) {
+    if (!ownedStickers.includes(number)) {
       Alert.alert(
         "Sličica nije u albumu",
         `Sličica ${number} nije označena kao sakupljena.\n\nPrvo je označite u "Moje sličice".`,
-        [
-          {
-            text: "U redu",
-          },
-        ],
       );
+      return;
     }
+    setEditingNumber(number);
+    setQuantityText(String(duplicates[number] || 0));
   }
 
-  /*
-    Select / clear all duplicates.
+  function adjustQuantity(delta) {
+    const current = Number.parseInt(quantityText, 10) || 0;
+    setQuantityText(String(Math.max(0, Math.min(100, current + delta))));
+  }
 
-    selectAllDuplicates only selects
-    stickers that already exist in
-    ownedStickers, so no warning is
-    displayed here.
-  */
+  function saveQuantity() {
+    const value = Number(quantityText);
+    if (
+      !/^\d+$/.test(quantityText) ||
+      !Number.isInteger(value) ||
+      value < 0 ||
+      value > 100
+    ) {
+      Alert.alert("Neispravna količina", "Unesite cijeli broj od 0 do 100.");
+      return;
+    }
+    setDuplicateQuantity(editingNumber, value);
+    setEditingNumber(null);
+  }
+
   function handleSelectAll() {
     if (ownedStickers.length === 0) {
       Alert.alert(
@@ -308,12 +321,114 @@ export default function DuplicatesScreen() {
         })}
       </ScrollView>
 
+      <Modal
+        transparent
+        animationType="fade"
+        visible={editingNumber !== null}
+        onRequestClose={() => setEditingNumber(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              Duplići – sličica {editingNumber}
+            </Text>
+            <View style={styles.quantityRow}>
+              <Pressable
+                style={styles.stepButton}
+                onPress={() => adjustQuantity(-1)}
+              >
+                <Text style={styles.stepText}>−</Text>
+              </Pressable>
+              <TextInput
+                style={styles.quantityInput}
+                keyboardType="number-pad"
+                maxLength={3}
+                selectTextOnFocus
+                value={quantityText}
+                onChangeText={setQuantityText}
+              />
+              <Pressable
+                style={styles.stepButton}
+                onPress={() => adjustQuantity(1)}
+              >
+                <Text style={styles.stepText}>+</Text>
+              </Pressable>
+            </View>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={styles.cancelModal}
+                onPress={() => setEditingNumber(null)}
+              >
+                <Text style={styles.cancelText}>Odustani</Text>
+              </Pressable>
+              <Pressable style={styles.saveModal} onPress={saveQuantity}>
+                <Text style={styles.saveText}>Spremi</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <BottomNavigation />
     </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 25,
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    padding: 24,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#222",
+    marginBottom: 22,
+  },
+  quantityRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  stepButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "#f47b20",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepText: { color: "#fff", fontSize: 30, fontWeight: "700" },
+  quantityInput: {
+    width: 85,
+    height: 55,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 13,
+    textAlign: "center",
+    fontSize: 24,
+    color: "#222",
+  },
+  rangeText: { color: "#777", marginTop: 12, marginBottom: 24 },
+  modalActions: { flexDirection: "row", gap: 12, width: "100%", marginTop: 24 },
+  cancelModal: {
+    flex: 1,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+  },
+  saveModal: {
+    flex: 1,
+    padding: 14,
+    backgroundColor: "#2e9f57",
+    borderRadius: 12,
+  },
+  cancelText: { textAlign: "center", color: "#555", fontWeight: "700" },
+  saveText: { textAlign: "center", color: "#fff", fontWeight: "800" },
   screen: {
     flex: 1,
     backgroundColor: "transparent",

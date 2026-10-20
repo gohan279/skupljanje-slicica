@@ -34,6 +34,7 @@ export function CollectionProvider({ children }) {
   const [selectedAlbumId, setSelectedAlbumId] = useState(null);
 
   const [isLoaded, setIsLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   /*
     Load albums when app starts.
@@ -49,7 +50,7 @@ export function CollectionProvider({ children }) {
     Save every time albums change.
   */
   useEffect(() => {
-    if (!isLoaded) {
+    if (!isLoaded || loadFailed) {
       return;
     }
 
@@ -67,7 +68,7 @@ export function CollectionProvider({ children }) {
     }
 
     saveData();
-  }, [albums, selectedAlbumId, isLoaded]);
+  }, [albums, selectedAlbumId, isLoaded, loadFailed]);
 
   async function loadData() {
     try {
@@ -77,24 +78,15 @@ export function CollectionProvider({ children }) {
       */
       const saved = await AsyncStorage.getItem(STORAGE_KEY);
 
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-
-        if (Array.isArray(parsed.albums) && parsed.albums.length > 0) {
-          setAlbums(parsed.albums);
-
-          const savedSelectedExists = parsed.albums.some(
-            (album) => album.id === parsed.selectedAlbumId,
-          );
-
-          setSelectedAlbumId(
-            savedSelectedExists ? parsed.selectedAlbumId : parsed.albums[0].id,
-          );
-
-          setIsLoaded(true);
-
-          return;
+        if (!Array.isArray(parsed.albums)) {
+          throw new Error("Neispravni spremljeni albumi");
         }
+        setAlbums(parsed.albums);
+        const validSelected = parsed.albums.some((album) => album.id === parsed.selectedAlbumId);
+        setSelectedAlbumId(validSelected ? parsed.selectedAlbumId : (parsed.albums[0]?.id || null));
+        return;
       }
 
       /*
@@ -124,23 +116,16 @@ export function CollectionProvider({ children }) {
         return;
       }
 
-      /*
-        Brand-new installation:
-        create one default album.
-      */
-      const firstAlbum = createEmptyAlbum("Album");
-
-      setAlbums([firstAlbum]);
-
-      setSelectedAlbumId(firstAlbum.id);
+      setAlbums([]);
+      setSelectedAlbumId(null);
     } catch (error) {
       console.log("Error loading albums:", error);
 
-      const fallback = createEmptyAlbum("Album");
-
-      setAlbums([fallback]);
-
-      setSelectedAlbumId(fallback.id);
+      setLoadFailed(true);
+      // Do not overwrite potentially recoverable data after a read error.
+      setAlbums([]);
+      setSelectedAlbumId(null);
+      return;
     } finally {
       setIsLoaded(true);
     }
@@ -229,50 +214,23 @@ export function CollectionProvider({ children }) {
       true  = duplicate can be changed
       false = sticker is not owned
   */
-  function cycleDuplicate(number) {
-    if (!selectedAlbum) {
-      return false;
-    }
-
-    const currentlyOwned = selectedAlbum.ownedStickers || [];
-
-    /*
-      Do not automatically add the
-      sticker to ownedStickers.
-    */
-    if (!currentlyOwned.includes(number)) {
-      return false;
-    }
-
+  function setDuplicateQuantity(number, quantity) {
+    if (!selectedAlbum || !selectedAlbum.ownedStickers?.includes(number)) return false;
+    const value = Number(quantity);
+    if (!Number.isInteger(value) || value < 0 || value > 100) return false;
     updateSelectedAlbum((album) => {
-      const updatedDuplicates = {
-        ...(album.duplicates || {}),
-      };
-
-      const currentCount = Number(updatedDuplicates[number] || 0);
-
-      const nextCount = currentCount >= 3 ? 0 : currentCount + 1;
-
-      if (nextCount === 0) {
-        delete updatedDuplicates[number];
-      } else {
-        updatedDuplicates[number] = nextCount;
-      }
-
-      return {
-        ...album,
-
-        duplicates: updatedDuplicates,
-
-        /*
-          ownedStickers are deliberately
-          NOT changed here.
-        */
-        ownedStickers: album.ownedStickers || [],
-      };
+      const updatedDuplicates = { ...(album.duplicates || {}) };
+      if (value === 0) delete updatedDuplicates[number];
+      else updatedDuplicates[number] = value;
+      return { ...album, duplicates: updatedDuplicates };
     });
-
     return true;
+  }
+
+  function cycleDuplicate(number) {
+    if (!selectedAlbum || !selectedAlbum.ownedStickers?.includes(number)) return false;
+    const current = Number(selectedAlbum.duplicates?.[number] || 0);
+    return setDuplicateQuantity(number, current >= 100 ? 0 : current + 1);
   }
 
   function hasSticker(number) {
@@ -336,31 +294,11 @@ export function CollectionProvider({ children }) {
     one album in the app.
   */
   function deleteAlbum(albumId) {
-    setAlbums((current) => {
-      const remaining = current.filter((album) => album.id !== albumId);
-
-      /*
-        If all albums were deleted,
-        create a new empty one.
-      */
-      if (remaining.length === 0) {
-        const replacement = createEmptyAlbum("Album");
-
-        setSelectedAlbumId(replacement.id);
-
-        return [replacement];
-      }
-
-      /*
-        If deleted album was selected,
-        select first remaining album.
-      */
-      if (selectedAlbumId === albumId) {
-        setSelectedAlbumId(remaining[0].id);
-      }
-
-      return remaining;
-    });
+    const remaining = albums.filter((album) => album.id !== albumId);
+    setAlbums(remaining);
+    if (selectedAlbumId === albumId) {
+      setSelectedAlbumId(remaining[0]?.id || null);
+    }
   }
 
   const ownedCount = ownedStickers.length;
@@ -470,6 +408,7 @@ export function CollectionProvider({ children }) {
 
         toggleOwnedSticker,
         cycleDuplicate,
+        setDuplicateQuantity,
 
         selectAllOwned,
         clearAllOwned,

@@ -34,6 +34,7 @@ export default function HomeScreen() {
     ownedCount,
     missingCount,
     duplicateCount,
+    isLoaded,
   } = useCollection();
 
   const [addAlbumVisible, setAddAlbumVisible] = useState(false);
@@ -80,6 +81,21 @@ export default function HomeScreen() {
   return (
     <AppBackground variant="home">
       <SafeAreaView style={styles.screen}>
+        {isLoaded && albums.length === 0 ? (
+          <View style={styles.emptyHome}>
+            <View style={styles.emptyLogoContainer}>
+              <Image
+                source={require("../assets/images/title-logo.png")}
+                style={styles.titleLogo}
+                resizeMode="contain"
+              />
+            </View>
+            <Pressable style={styles.emptyAddButton} onPress={() => setAddAlbumVisible(true)}>
+              <MaterialCommunityIcons name="plus" size={24} color="#ffffff" />
+              <Text style={styles.emptyAddText}>Dodaj album</Text>
+            </Pressable>
+          </View>
+        ) : isLoaded ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
@@ -315,8 +331,9 @@ export default function HomeScreen() {
             </View>
           </View>
         </ScrollView>
+        ) : <View style={{ flex: 1 }} />}
 
-        <BottomNavigation />
+        {isLoaded && <BottomNavigation />}
 
         {/* CREATE ALBUM MODAL */}
 
@@ -367,6 +384,10 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  emptyHome: { flex: 1, justifyContent: "center", alignItems: "center" },
+  emptyLogoContainer: { position: "absolute", top: 28, left: 18, right: 18, alignItems: "center" },
+  emptyAddButton: { flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: "#2e9f57", borderRadius: 22, paddingVertical: 18, paddingHorizontal: 26 },
+  emptyAddText: { color: "#ffffff", fontSize: 20, fontWeight: "800" },
   screen: {
     flex: 1,
     backgroundColor: "transparent",

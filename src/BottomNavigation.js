@@ -3,11 +3,14 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCollection } from "./CollectionContext";
 
 export default function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { albums, isLoaded } = useCollection();
+  const tradeDisabled = !isLoaded || !albums || albums.length === 0;
 
   function isActive(section) {
     if (section === "home") {
@@ -35,6 +38,7 @@ export default function BottomNavigation() {
   }
 
   function getColor(section) {
+    if (section === "trade" && tradeDisabled) return "#bcbcbc";
     return isActive(section) ? "#f57c00" : "#999999";
   }
 
@@ -86,7 +90,12 @@ export default function BottomNavigation() {
       </Pressable>
 
       {/* RAZMJENA */}
-      <Pressable style={styles.navItem} onPress={() => router.replace("/scan")}>
+      <Pressable
+        style={[styles.navItem, tradeDisabled && styles.navItemDisabled]}
+        disabled={tradeDisabled}
+        accessibilityState={{ disabled: tradeDisabled }}
+        onPress={() => router.replace("/scan")}
+      >
         <MaterialCommunityIcons
           name="swap-horizontal"
           size={27}
@@ -94,7 +103,11 @@ export default function BottomNavigation() {
         />
 
         <Text
-          style={[styles.navText, isActive("trade") && styles.navTextActive]}
+          style={[
+            styles.navText,
+            isActive("trade") && !tradeDisabled && styles.navTextActive,
+            tradeDisabled && styles.navTextDisabled,
+          ]}
         >
           Razmjena
         </Text>
@@ -156,6 +169,14 @@ const styles = StyleSheet.create({
     marginTop: 3,
     color: "#999999",
     fontWeight: "600",
+  },
+
+  navItemDisabled: {
+    opacity: 0.6,
+  },
+
+  navTextDisabled: {
+    color: "#bcbcbc",
   },
 
   navTextActive: {
